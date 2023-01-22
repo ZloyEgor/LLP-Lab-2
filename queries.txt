@@ -1,0 +1,30 @@
+//open file
+open("filename.txt")
+//create file
+create("filename.txt")
+
+//create schema
+addSchema(name, ... attrs)
+
+addSchema(name, attr_name1, attr_type1, [scema_ref_name1])
+
+//delete schema
+deleteSchema(name)
+
+//add node
+addVertex(schema_name, ...(attr_name, attr_value))
+
+//select section
+g.V().has(attr_name, attr_value)
+g.V().has(attr_name, within(value_1, value_2, ...))
+
+//options of selections
+attr_value      //just compare
+gt(value)       //greater than
+gte(value)      //greater or equal than
+lt(value)       //less than
+lte(value)      //less or equal than
+not(value)      //not equal to
+
+
+.values(attr_name)
