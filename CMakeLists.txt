@@ -1,25 +1,19 @@
-cmake_minimum_required(VERSION 3.23)
-project(Lab2)
+cmake_minimum_required(VERSION 3.21)
 
-set(CMAKE_CXX_STANDARD 17)
+project(Calc VERSION 1.0 LANGUAGES C)
 
-## Flex/Bison configuration
-find_package(BISON REQUIRED)
-find_package(FLEX REQUIRED)
+set(SRC_DIR ".")
+set(PARSER_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 
+find_package(FLEX 2.6 REQUIRED)
+find_package(BISON 2.3 REQUIRED)
 
-FLEX_TARGET(LEXER ${CMAKE_CURRENT_SOURCE_DIR}/lexer.l
-        ${CMAKE_CURRENT_BINARY_DIR}/lexer.c DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/lexer.h COMPILE_FLAGS ${ADDITIONAL_FLEX_FLAGS})
-BISON_TARGET(PARSER ${CMAKE_CURRENT_SOURCE_DIR}/parser.y
-        ${CMAKE_CURRENT_BINARY_DIR}/parser.c COMPILE_FLAGS "-d -v")
-ADD_FLEX_BISON_DEPENDENCY(LEXER PARSER)
+set(LEXER_OUT "${PARSER_DIR}/lexer.c")
+set(PARSER_OUT "${PARSER_DIR}/parser.c")
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+flex_target(LEXER "${SRC_DIR}/lexer.l" "${LEXER_OUT}" DEFINES_FILE "${PARSER_DIR}/lexer.h")
+bison_target(PARSER "${SRC_DIR}/parser.y" "${PARSER_OUT}" DEFINES_FILE "${PARSER_DIR}/parser.h" COMPILE_FLAGS "-d -v")
+add_flex_bison_dependency(LEXER PARSER)
 
-file(GLOB source_files
-        ${CMAKE_CURRENT_SOURCE_DIR}/*.c
-        )
-
-add_executable(${PROJECT_NAME} ${source_files} ${BISON_PARSER_OUTPUTS} ${FLEX_LEXER_OUTPUTS} main.c)
-
-target_link_libraries(${PROJECT_NAME} m)
+add_executable(calc "${SRC_DIR}/main.c" "${LEXER_OUT}" "${PARSER_OUT}")
+target_include_directories(calc PRIVATE "${PARSER_DIR}")
