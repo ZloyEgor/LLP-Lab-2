@@ -20,6 +20,6 @@ file(GLOB source_files
         )
 
 add_executable(calc "${source_files}" "${SRC_DIR}/main.c" "${LEXER_OUT}" "${PARSER_OUT}" request_tree.c request_tree.h array_list.c array_list.h)
-target_include_directories(calc PRIVATE "${PARSER_DIR}")
+target_include_directories(calc PRIVATE ${PARSER_DIR} ${SRC_DIR})
 
 target_link_libraries(calc m)
