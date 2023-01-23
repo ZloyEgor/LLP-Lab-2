@@ -11,6 +11,7 @@
 \"                      {return QUOTE;}
 "."                     {return DOT;}
 ","                     {return COMMA;}
+";"                     {return SEMICOLON;}
 
 
 
@@ -24,6 +25,7 @@
 "addVertex"             {return TOK_ADD_NODE;}
 "V"                     {return TOK_NODES;}
 "has"                   {return TOK_SELECT;}
+"out"                   {return TOK_OUT;}
 
 "gt"                    {return TOK_GREATER;}
 "gte"                   {return TOK_GREATER_EQUAL;}
@@ -41,7 +43,7 @@
 "values"                {return TOK_VALUES;}
 "delete"                {return TOK_DELETE;}
 
-"true"|"false"        {yylval.boolean = !strcmp(yytext, "true"); return BOOLEAN;}
+"true"|"false"          {yylval.boolean = !strcmp(yytext, "true"); return BOOLEAN;}
 
 [a-zA-Z][a-zA-Z0-9_]*           {yylval.string = strdup(yytext); return WORD;}
 (\.[0-9]+)|([0-9]+(\.[0-9]*)?([eE][+-]?[0-9]+)?)   {
@@ -55,6 +57,6 @@
       }
 }
 
-\n                      {/* ignore end of line */;}
+\n                      {/*ignore */;}
 [ \t]+                  {/* ignore whitespace */;}
 %%

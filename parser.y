@@ -14,7 +14,6 @@ extern char *yytext;
 #define YYDEBUG_LEXER_TEXT yytext
 
 %}
-
 %union
 {
 	int integer;
@@ -25,13 +24,14 @@ extern char *yytext;
 }
 %type<string> quoted_argument
 
-%token OBRACE CBRACE QUOTE DOT COMMA
+%token OBRACE CBRACE QUOTE DOT COMMA SEMICOLON
 
 %token TOK_OPEN TOK_CREATE TOK_CLOSE
 %token TOK_ADD_SCHEMA TOK_DELETE_SCHEMA
 %token TOK_ADD_NODE TOK_NODES TOK_SELECT
 %token TOK_GREATER TOK_GREATER_EQUAL TOK_LESS TOK_LESS_EQUAL TOK_NOT_EQUAL TOK_LIKE
 %token TOK_VALUES TOK_DELETE
+%token TOK_OUT
 
 %token <integer> INTEGER
 %token <decimal> DECIMAL
@@ -65,6 +65,10 @@ command:
 	delete_schema
 	|
 	add_vertex
+	|
+	select_nodes
+	|
+	select_nodes_condition
 	;
 
 open_file:
@@ -114,6 +118,89 @@ add_vertex:
 	}
 	;
 
+select_nodes:
+	TOK_NODES OBRACE quoted_argument CBRACE
+	{
+		printf("select statement on %s\n", $3);
+	}
+	;
+
+select_nodes_condition:
+	select_nodes select_condition
+	;
+
+select_condition:
+	| DOT TOK_SELECT OBRACE select_statements CBRACE
+	{
+		printf("select condition\n");	
+	}
+	;
+
+select_statements:
+	| select_statements select_statement COMMA {
+
+	}
+	| select_statements select_statement {
+
+	}
+	;
+
+select_statement:
+	quoted_argument COMMA select_option {
+
+	}
+	;
+
+select_option:
+	option_compare 
+	| option_greater
+	| option_greater_equal
+	| option_less
+	| option_less_equal
+	| option_not_equal
+	| option_like
+	;
+
+option_compare:
+	INTEGER | DECIMAL | BOOLEAN | quoted_argument
+	;
+
+option_greater:
+	TOK_GREATER OBRACE INTEGER CBRACE
+	| TOK_GREATER OBRACE DECIMAL CBRACE
+	| TOK_GREATER OBRACE BOOLEAN CBRACE
+	| TOK_GREATER OBRACE quoted_argument CBRACE
+	;
+option_greater_equal:
+	TOK_GREATER_EQUAL OBRACE INTEGER CBRACE
+	| TOK_GREATER_EQUAL OBRACE DECIMAL CBRACE
+	| TOK_GREATER_EQUAL OBRACE BOOLEAN CBRACE
+	| TOK_GREATER_EQUAL OBRACE quoted_argument CBRACE
+	;
+
+option_less:
+	TOK_LESS OBRACE INTEGER CBRACE
+	| TOK_LESS OBRACE DECIMAL CBRACE
+	| TOK_LESS OBRACE BOOLEAN CBRACE
+	| TOK_LESS OBRACE quoted_argument CBRACE
+	;
+option_less_equal:
+	TOK_LESS_EQUAL OBRACE INTEGER CBRACE
+	| TOK_LESS_EQUAL OBRACE DECIMAL CBRACE
+	| TOK_LESS_EQUAL OBRACE BOOLEAN CBRACE
+	| TOK_LESS_EQUAL OBRACE quoted_argument CBRACE
+	;
+option_not_equal:
+	TOK_NOT_EQUAL OBRACE INTEGER CBRACE
+	| TOK_NOT_EQUAL OBRACE DECIMAL CBRACE
+	| TOK_NOT_EQUAL OBRACE BOOLEAN CBRACE
+	| TOK_NOT_EQUAL OBRACE quoted_argument CBRACE
+	;
+option_like:
+	TOK_LIKE OBRACE quoted_argument CBRACE
+	;
+
+
 attribute_value_pairs:
 	| attribute_value_pairs COMMA attribute_value_pair {
 
@@ -132,6 +219,7 @@ attribute_value_pair:
 	| quoted_argument COMMA WORD{
 		
 	}
+	;
 
 attribute_pairs:
 	| attribute_pairs COMMA attribute_pair {
