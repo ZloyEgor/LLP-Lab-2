@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 #include <stdbool.h>
+#include <math.h>
 #include "parser.h"
 %}
 
@@ -9,7 +10,8 @@
 ")"                     {return CBRACE;}
 \"                      {return QUOTE;}
 "."                     {return DOT;}
-[0-9]+                  {return NUMBER;}
+","                     {return COMMA;}
+
 
 
 "open"                  {return TOK_OPEN;}
@@ -30,10 +32,29 @@
 "neq"                   {return TOK_NOT_EQUAL;}
 "like"                  {return TOK_LIKE;}
 
+"integer"               {return TOK_INTEGER;}
+"float"                 {return TOK_FLOAT;}
+"string"                {return TOK_STRING;}
+"boolean"               {return TOK_BOOLEAN;}
+"reference"             {return TOK_REFERENCE;}
+
 "values"                {return TOK_VALUES;}
 "delete"                {return TOK_DELETE;}
 
-[a-zA-Z][a-zA-Z0-9]*    {yylval.string = strdup(yytext); return WORD;}
+"true"|"false"        {yylval.boolean = !strcmp(yytext, "true"); return BOOLEAN;}
+
+[a-zA-Z][a-zA-Z0-9_]*           {yylval.string = strdup(yytext); return WORD;}
+(\.[0-9]+)|([0-9]+(\.[0-9]*)?([eE][+-]?[0-9]+)?)   {
+      double f = atof(yytext);
+      if (ceil(f) == f) {
+        yylval.integer = atoi(yytext);
+        return INTEGER;
+      } else {
+        yylval.decimal = f;
+        return DECIMAL;
+      }
+}
+
 \n                      {/* ignore end of line */;}
 [ \t]+                  {/* ignore whitespace */;}
 %%
