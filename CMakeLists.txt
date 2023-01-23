@@ -15,5 +15,11 @@ flex_target(LEXER "${SRC_DIR}/lexer.l" "${LEXER_OUT}" DEFINES_FILE "${PARSER_DIR
 bison_target(PARSER "${SRC_DIR}/parser.y" "${PARSER_OUT}" DEFINES_FILE "${PARSER_DIR}/parser.h" COMPILE_FLAGS "-d -v")
 add_flex_bison_dependency(LEXER PARSER)
 
-add_executable(calc "${SRC_DIR}/main.c" "${LEXER_OUT}" "${PARSER_OUT}")
+file(GLOB source_files
+        ${CMAKE_CURRENT_SOURCE_DIR}/*.c
+        )
+
+add_executable(calc "${source_files}" "${SRC_DIR}/main.c" "${LEXER_OUT}" "${PARSER_OUT}" request_tree.c request_tree.h array_list.c array_list.h)
 target_include_directories(calc PRIVATE "${PARSER_DIR}")
+
+target_link_libraries(calc m)

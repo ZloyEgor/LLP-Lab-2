@@ -1,4 +1,5 @@
 %{
+#include "request_tree.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,6 +7,8 @@
 int yylex();
 int yyparse();
 void yyerror(const char *s);
+
+request_tree tree;
 
 char *file_name;
 int opened = 0;
@@ -298,4 +301,11 @@ void yyerror(const char *str)
 int yywrap()
 {
 	return 1;
+}
+
+request_tree get_request_tree(){
+	tree.type = REQUEST_CREATE;
+	tree.file_work.filename = malloc(sizeof(char) * strlen("Hello, world!"));
+	strcpy(tree.file_work.filename, "Hello, world!");
+	return tree;
 }
