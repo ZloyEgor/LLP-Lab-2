@@ -66,9 +66,11 @@ command:
 	|
 	add_vertex
 	|
-	select_nodes
-	|
 	select_nodes_condition
+	|
+	join_command
+	|
+	delete_command
 	;
 
 open_file:
@@ -132,7 +134,42 @@ select_nodes_condition:
 select_condition:
 	| DOT TOK_SELECT OBRACE select_statements CBRACE
 	{
-		printf("select condition\n");	
+		printf("condition of select\n");
+	}
+	;
+
+join_command:
+	select_nodes joins{
+		printf("join_command\n");
+	}
+	|
+	select_nodes_condition joins{
+		printf("join_command\n");
+	}
+	;
+
+joins:
+	join | joins
+	;
+
+join:
+	DOT TOK_OUT OBRACE quoted_argument CBRACE
+	{
+		printf("join %s\n", $4);
+	}
+	;
+
+delete_command:
+	join_command DOT TOK_DELETE {
+		printf("delete command\n");
+	}
+	|
+	select_nodes DOT TOK_DELETE {
+		printf("delete command\n");
+	}
+	|
+	select_nodes_condition DOT TOK_DELETE {
+		printf("delete command\n");
 	}
 	;
 
