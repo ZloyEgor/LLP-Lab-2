@@ -9,7 +9,8 @@
 #include "array_list.h"
 
 typedef enum request_type {
-    REQUEST_OPEN = 0,
+    UNDEFINED,
+    REQUEST_OPEN,
     REQUEST_CREATE,
     REQUEST_CLOSE,
     REQUEST_ADD_SCHEMA,

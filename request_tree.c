@@ -74,7 +74,7 @@ void print_request_tree(request_tree tree) {
             break;
         }
         case REQUEST_CLOSE: {
-            printf("Close file: %s\n", tree.file_work.filename);
+            printf("Close file\n");
             break;
         }
         case REQUEST_ADD_SCHEMA: {
@@ -93,5 +93,8 @@ void print_request_tree(request_tree tree) {
             //TODO
             break;
         }
+        case UNDEFINED:
+            printf("Empty tree");
+            break;
     }
 }

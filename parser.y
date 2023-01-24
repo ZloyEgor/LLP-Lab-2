@@ -3,12 +3,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 int yylex();
 int yyparse();
 void yyerror(const char *s);
 
-request_tree tree;
+request_tree tree = {.type = UNDEFINED};
+bool array_list_created = false;
 
 char *file_name;
 int opened = 0;
@@ -24,8 +26,11 @@ extern char *yytext;
 	float decimal;
 	int boolean;
 	char *ref_name;
+	int attribute_type;
 }
+
 %type<string> quoted_argument
+%type<attribute_type> attribute_type
 
 %token OBRACE CBRACE QUOTE DOT COMMA SEMICOLON
 
@@ -35,6 +40,7 @@ extern char *yytext;
 %token TOK_GREATER TOK_GREATER_EQUAL TOK_LESS TOK_LESS_EQUAL TOK_NOT_EQUAL TOK_LIKE
 %token TOK_VALUES TOK_DELETE
 %token TOK_OUT
+%token <string> FILENAME
 
 %token <integer> INTEGER
 %token <decimal> DECIMAL
@@ -52,7 +58,9 @@ extern char *yytext;
 %%
 
 commands: /* empty */
-	| commands command
+	| commands command {
+	YYACCEPT;
+	}
 	;
 
 
@@ -77,36 +85,32 @@ command:
 	;
 
 open_file:
-	TOK_OPEN OBRACE quoted_argument CBRACE
+	TOK_OPEN OBRACE QUOTE FILENAME QUOTE CBRACE
 	{
-		printf("File %s opened\n", $3);
-		opened = 1;
-		file_name = malloc(sizeof(char) * strlen($3));
-		strcpy(file_name, $3);
+		tree.type = REQUEST_OPEN;
+		tree.file_work.filename = malloc(sizeof(char) * strlen($4));
+		strcpy(tree.file_work.filename, $4);
 	};
 create_file:
-	TOK_CREATE OBRACE quoted_argument CBRACE
+	TOK_CREATE OBRACE QUOTE FILENAME QUOTE CBRACE
 	{
-		printf("File %s created and opened\n", $3);
-		opened = 1;
-		file_name = malloc(sizeof(char) * strlen($3));
-		strcpy(file_name, $3);
+		tree.type = REQUEST_CREATE;
+		tree.file_work.filename = malloc(sizeof(char) * strlen($4));
+		strcpy(tree.file_work.filename, $4);
 	};
 
 close_file:
 	TOK_CLOSE OBRACE CBRACE
 	{
-		if (opened) {
-		    printf("File %s closed\n", file_name);
-		    free(file_name);
-		    opened = 0;
-		} else
-		    printf("Nothing to close\n");
+		tree.type = REQUEST_CLOSE;
 	};
 
 add_schema:
 	TOK_ADD_SCHEMA OBRACE quoted_argument attribute_pairs CBRACE
 	{
+		tree.type = REQUEST_ADD_SCHEMA;
+		tree.add_schema.schema_name = malloc(sizeof(char) * strlen($3));
+		strcpy(tree.add_schema.schema_name, $3);
 		printf("schema %s added successfully\n", $3);
 	};
 
@@ -266,21 +270,54 @@ attribute_pairs:
 	}
 	;
 
+attribute_type:
+	TOK_INTEGER {
+		$$ = ATTR_TYPE_INTEGER;
+	}
+	| TOK_STRING {
+		$$ = ATTR_TYPE_STRING;
+	}
+	| TOK_FLOAT {
+		$$ = ATTR_TYPE_FLOAT;
+	}
+	| TOK_BOOLEAN {
+		$$ = ATTR_TYPE_BOOLEAN;
+	}
+	| TOK_REFERENCE {
+		$$ = ATTR_TYPE_REFERENCE;
+	}
+	
+	;
 attribute_pair:
-	quoted_argument COMMA TOK_INTEGER {
-		printf("%s: integer\n", $1);
+	quoted_argument COMMA attribute_type {
+		if (!array_list_created) {
+		tree.add_schema.attribute_declarations = arraylist_create();
+		printf("arraylist created\n");
+		array_list_created = true;
+		}
+		attribute_declaration *attr_decl = malloc(sizeof(attribute_declaration));
+		*attr_decl = (attribute_declaration) {
+		.attr_name = malloc(sizeof(char) * strlen($1)),
+		.type = $3,
+		};
+		strcpy(attr_decl->attr_name, $1);
+		arraylist_add(tree.add_schema.attribute_declarations, attr_decl);
 	}
-	| quoted_argument COMMA TOK_STRING {
-		printf("%s: string\n", $1);
-	}
-	| quoted_argument COMMA TOK_FLOAT {
-		printf("%s: float\n", $1);
-	}
-	| quoted_argument COMMA TOK_BOOLEAN {
-		printf("%s: boolean\n", $1);
-	}
-	| quoted_argument COMMA TOK_REFERENCE OBRACE quoted_argument CBRACE{
-		printf("%s: reference to %s\n", $1, $5);
+	| quoted_argument COMMA TOK_REFERENCE OBRACE quoted_argument CBRACE {
+		if (!array_list_created) {
+		tree.add_schema.attribute_declarations = arraylist_create();
+		printf("arraylist created\n");
+		array_list_created = true;
+		}
+		attribute_declaration *attr_decl = malloc(sizeof(attribute_declaration));
+		*attr_decl = (attribute_declaration) {
+		.attr_name = malloc(sizeof(char) * strlen($1)),
+		.type = ATTR_TYPE_REFERENCE,
+		.schema_ref_name = malloc(sizeof(char) * strlen($5))
+		};
+		strcpy(attr_decl->attr_name, $1);
+		strcpy(attr_decl->schema_ref_name, $5);
+		arraylist_add(tree.add_schema.attribute_declarations, attr_decl);
 	}
 	;
 
@@ -304,8 +341,5 @@ int yywrap()
 }
 
 request_tree get_request_tree(){
-	tree.type = REQUEST_CREATE;
-	tree.file_work.filename = malloc(sizeof(char) * strlen("Hello, world!"));
-	strcpy(tree.file_work.filename, "Hello, world!");
 	return tree;
 }
