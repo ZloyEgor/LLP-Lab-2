@@ -82,7 +82,9 @@ command:
 	;
 
 select_command:
-	select_nodes
+	select_nodes {
+		tree.type = REQUEST_SELECT;
+	}
 	| select_command select_condition
 	| select_command join
 	| select_command delete_command
@@ -138,12 +140,10 @@ add_vertex:
 select_nodes:
 	TOK_NODES OBRACE quoted_argument CBRACE
 	{
+		tree.schema_name = malloc(sizeof(char) * strlen($3));
+		strcpy(tree.schema_name, $3);
 		printf("select statement on %s\n", $3);
 	}
-	;
-
-select_nodes_condition:
-	select_nodes select_condition
 	;
 
 select_condition:

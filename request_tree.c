@@ -34,6 +34,70 @@ static void print_schema(add_schema_struct schema) {
     }
 }
 
+static char* const select_option_strings[] = {
+        [OPTION_EQUAL] = "=",
+        [OPTION_GREATER] = ">",
+        [OPTION_GREATER_EQUAL] = ">=",
+        [OPTION_LESS] = "<",
+        [OPTION_LESS_EQUAL] = "<=",
+        [OPTION_NOT_EQUAL] = "!=",
+        [OPTION_LIKE] = "like"
+};
+
+static void print_condition(select_condition condition) {
+    switch (condition.type) {
+        case ATTR_TYPE_INTEGER: {
+            printf("%s %s %d\n", condition.attr_name, select_option_strings[condition.option],
+                   condition.value.integer_value);
+            break;
+        }
+        case ATTR_TYPE_BOOLEAN: {
+            printf("%s %s %s\n", condition.attr_name, select_option_strings[condition.option],
+                   condition.value.bool_value ? "true" : "false");
+            break;
+        }
+        case ATTR_TYPE_FLOAT: {
+            printf("%s %s %.4f\n", condition.attr_name, select_option_strings[condition.option],
+                   condition.value.float_value);
+            break;
+        }
+        case ATTR_TYPE_REFERENCE:
+        case ATTR_TYPE_STRING: {
+            printf("%s %s %s\n", condition.attr_name, select_option_strings[condition.option],
+                   condition.value.string_value);
+            break;
+        }
+    }
+}
+
+static void print_statement(statement stmt) {
+    switch (stmt.type) {
+        case SELECT_CONDITION: {
+            for (int i = 0; i < arraylist_size(stmt.conditions); i++) {
+                select_condition *condition = arraylist_get(stmt.conditions, i);
+                print_condition(*condition);
+            }
+            break;
+        }
+        case OUT: {
+            printf("Out nodes by %s\n\n", stmt.attr_name);
+            break;
+        }
+        case DELETE: {
+            printf("Delete nodes\n");
+            break;
+        }
+    }
+}
+
+static void print_statements(arraylist* statements) {
+    if (statements == NULL) return;
+    for (int i = 0; i < arraylist_size(statements); i++) {
+        statement *cur_stmt = arraylist_get(statements, i);
+        print_statement(*cur_stmt);
+    }
+}
+
 static void print_node(add_node_struct node) {
     printf("Add node of schema: %s\n", node.schema_name);
     for (int i = 0; i < arraylist_size(node.attribute_values); ++i) {
@@ -90,11 +154,12 @@ void print_request_tree(request_tree tree) {
             break;
         }
         case REQUEST_SELECT: {
-            //TODO
+            printf("Select nodes: %s\n", tree.schema_name);
+            print_statements(tree.statements);
             break;
         }
         case UNDEFINED:
-            printf("Empty tree");
+            printf("Empty tree\n");
             break;
     }
 }

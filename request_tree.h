@@ -77,25 +77,33 @@ typedef enum select_option {
 typedef struct select_condition {
     char *attr_name;
     select_option option;
+    attr_type type;
     union value value;
 } select_condition;
 
-typedef struct select_node_struct {
-    char *schema_name;
-    arraylist *conditions;
-    bool need_to_delete;
-    bool need_to_out;
-    char *out_attr_name;
-} select_node_struct;
+typedef enum statement_type {
+    SELECT_CONDITION,
+    OUT,
+    DELETE
+} statement_type;
+
+typedef struct statement {
+    statement_type type;
+    union {
+        arraylist *conditions;
+        char *attr_name;
+    };
+} statement;
 
 typedef struct request_tree {
     request_type type;
+    char* schema_name;
     union {
         file_work_struct file_work;
         add_schema_struct add_schema;
         delete_schema_struct delete_schema;
         add_node_struct add_node;
-        select_node_struct select_node;
+        arraylist *statements;
     };
 } request_tree;
 
