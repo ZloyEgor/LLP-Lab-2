@@ -41,7 +41,7 @@
 "reference"             {return TOK_REFERENCE;}
 
 "values"                {return TOK_VALUES;}
-"delete()"                {return TOK_DELETE;}
+"delete()"              {return TOK_DELETE;}
 
 "true"|"false"          {yylval.boolean = !strcmp(yytext, "true"); return BOOLEAN;}
 

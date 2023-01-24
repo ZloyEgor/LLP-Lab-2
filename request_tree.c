@@ -35,7 +35,7 @@ static void print_schema(add_schema_struct schema) {
 }
 
 static void print_node(add_node_struct node) {
-    printf("Add node of schema: %s\n\n", node.schema_name);
+    printf("Add node of schema: %s\n", node.schema_name);
     for (int i = 0; i < arraylist_size(node.attribute_values); ++i) {
         attr_value *cur_attr = arraylist_get(node.attribute_values, i);
         switch (cur_attr->type) {

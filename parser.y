@@ -46,6 +46,7 @@ extern char *yytext;
 %token <decimal> DECIMAL
 %token <boolean> BOOLEAN
 %token <string> WORD
+%token <string> STRING
 
 %token TOK_INTEGER 
 %token TOK_FLOAT 
@@ -58,7 +59,7 @@ extern char *yytext;
 %%
 
 commands: /* empty */
-	| commands command {
+	| commands command SEMICOLON {
 	YYACCEPT;
 	}
 	;
@@ -77,11 +78,14 @@ command:
 	|
 	add_vertex
 	|
-	select_nodes_condition
-	|
-	join_command
-	|
-	delete_command
+	select_command
+	;
+
+select_command:
+	select_nodes
+	| select_command select_condition
+	| select_command join
+	| select_command delete_command
 	;
 
 open_file:
@@ -91,6 +95,7 @@ open_file:
 		tree.file_work.filename = malloc(sizeof(char) * strlen($4));
 		strcpy(tree.file_work.filename, $4);
 	};
+
 create_file:
 	TOK_CREATE OBRACE QUOTE FILENAME QUOTE CBRACE
 	{
@@ -111,19 +116,22 @@ add_schema:
 		tree.type = REQUEST_ADD_SCHEMA;
 		tree.add_schema.schema_name = malloc(sizeof(char) * strlen($3));
 		strcpy(tree.add_schema.schema_name, $3);
-		printf("schema %s added successfully\n", $3);
 	};
 
 delete_schema:
 	TOK_DELETE_SCHEMA OBRACE quoted_argument CBRACE
 	{
-		printf("schema %s deleted\n", $3);
+		tree.type = REQUEST_DELETE_SCHEMA;
+		tree.add_schema.schema_name = malloc(sizeof(char) * strlen($3));
+		strcpy(tree.add_schema.schema_name, $3);
 	};
 
 add_vertex:
 	TOK_ADD_NODE OBRACE quoted_argument attribute_value_pairs CBRACE 
 	{
-		printf("node %s added successfully\n", $3);
+		tree.type = REQUEST_ADD_NODE;
+		tree.add_node.schema_name = malloc(sizeof(char) * strlen($3));
+		strcpy(tree.add_node.schema_name, $3);
 	}
 	;
 
@@ -145,37 +153,15 @@ select_condition:
 	}
 	;
 
-join_command:
-	select_nodes joins{
-		printf("join_command\n");
-	}
-	|
-	select_nodes_condition joins{
-		printf("join_command\n");
-	}
-	;
-
-joins:
-	join | joins
-	;
-
 join:
-	DOT TOK_OUT OBRACE quoted_argument CBRACE
+	| DOT TOK_OUT OBRACE quoted_argument CBRACE
 	{
 		printf("join %s\n", $4);
 	}
 	;
 
 delete_command:
-	join_command DOT TOK_DELETE {
-		printf("delete command\n");
-	}
-	|
-	select_nodes DOT TOK_DELETE {
-		printf("delete command\n");
-	}
-	|
-	select_nodes_condition DOT TOK_DELETE {
+	| DOT TOK_DELETE {
 		printf("delete command\n");
 	}
 	;
@@ -251,17 +237,63 @@ attribute_value_pairs:
 	};
 
 attribute_value_pair:
+	
 	quoted_argument COMMA INTEGER {
-		printf("%s (integer): %d\n", $1, $3);
+		if(!array_list_created) {
+			tree.add_node.attribute_values = arraylist_create();
+			array_list_created = true;
+		}
+		attr_value *attr_val = malloc(sizeof(attr_value));
+		*attr_val = (attr_value) {
+			.attr_name = malloc(sizeof(char) * strlen($1)),
+			.type = ATTR_TYPE_INTEGER,
+			.value = (union value) {.integer_value = $3}
+		};
+		strcpy(attr_val->attr_name, $1);
+		arraylist_add(tree.add_node.attribute_values, attr_val);
 	}
 	| quoted_argument COMMA DECIMAL{
-		printf("%s (decimal): %.4f\n", $1, $3);
+		if(!array_list_created) {
+			tree.add_node.attribute_values = arraylist_create();
+			array_list_created = true;
+		}
+		attr_value *attr_val = malloc(sizeof(attr_value));
+		*attr_val = (attr_value) {
+			.attr_name = malloc(sizeof(char) * strlen($1)),
+			.type = ATTR_TYPE_FLOAT,
+			.value = (union value) {.float_value = $3}
+		}; 
+		strcpy(attr_val->attr_name, $1);
+		arraylist_add(tree.add_node.attribute_values, attr_val);
 	}
 	| quoted_argument COMMA BOOLEAN{
-		printf("%s (boolean): %s\n", $1, $3? "true" : "false")
+		if(!array_list_created) {
+			tree.add_node.attribute_values = arraylist_create();
+			array_list_created = true;
+		}
+		attr_value *attr_val = malloc(sizeof(attr_value));
+		*attr_val = (attr_value) {
+			.attr_name = malloc(sizeof(char) * strlen($1)),
+			.type = ATTR_TYPE_BOOLEAN,
+			.value = (union value) {.bool_value = $3}
+		};
+		strcpy(attr_val->attr_name, $1);
+		arraylist_add(tree.add_node.attribute_values, attr_val);
 	}
-	| quoted_argument COMMA WORD{
-		
+	| quoted_argument COMMA quoted_argument{
+		if(!array_list_created) {
+			tree.add_node.attribute_values = arraylist_create();
+			array_list_created = true;
+		}
+		attr_value *attr_val = malloc(sizeof(attr_value));
+		*attr_val = (attr_value) {
+			.attr_name = malloc(sizeof(char) * strlen($1)),
+			.type = ATTR_TYPE_STRING,
+			.value = (union value) {.string_value = malloc(sizeof(char) * strlen($3))}
+		};
+		strcpy(attr_val->value.string_value, $3);
+		strcpy(attr_val->attr_name, $1);
+		arraylist_add(tree.add_node.attribute_values, attr_val);
 	}
 	;
 
@@ -292,7 +324,6 @@ attribute_pair:
 	quoted_argument COMMA attribute_type {
 		if (!array_list_created) {
 		tree.add_schema.attribute_declarations = arraylist_create();
-		printf("arraylist created\n");
 		array_list_created = true;
 		}
 		attribute_declaration *attr_decl = malloc(sizeof(attribute_declaration));
@@ -303,7 +334,7 @@ attribute_pair:
 		strcpy(attr_decl->attr_name, $1);
 		arraylist_add(tree.add_schema.attribute_declarations, attr_decl);
 	}
-	| quoted_argument COMMA TOK_REFERENCE OBRACE quoted_argument CBRACE {
+	| quoted_argument COMMA TOK_REFERENCE OBRACE STRING CBRACE {
 		if (!array_list_created) {
 		tree.add_schema.attribute_declarations = arraylist_create();
 		printf("arraylist created\n");
