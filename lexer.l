@@ -27,6 +27,7 @@
 "has"                   {return TOK_SELECT;}
 "out"                   {return TOK_OUT;}
 
+"eq"                    {return TOK_EQUAL;}
 "gt"                    {return TOK_GREATER;}
 "gte"                   {return TOK_GREATER_EQUAL;}
 "lt"                    {return TOK_LESS;}

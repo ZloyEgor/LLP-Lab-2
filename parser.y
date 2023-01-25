@@ -16,6 +16,9 @@ char *file_name;
 int opened = 0;
 
 extern char *yytext;
+
+statement *cur_statement = NULL;
+
 #define YYDEBUG_LEXER_TEXT yytext
 
 %}
@@ -27,6 +30,7 @@ extern char *yytext;
 	int boolean;
 	char *ref_name;
 	int attribute_type;
+	int compare_option;
 }
 
 %type<string> quoted_argument
@@ -37,7 +41,7 @@ extern char *yytext;
 %token TOK_OPEN TOK_CREATE TOK_CLOSE
 %token TOK_ADD_SCHEMA TOK_DELETE_SCHEMA
 %token TOK_ADD_NODE TOK_NODES TOK_SELECT
-%token TOK_GREATER TOK_GREATER_EQUAL TOK_LESS TOK_LESS_EQUAL TOK_NOT_EQUAL TOK_LIKE
+%token TOK_EQUAL TOK_GREATER TOK_GREATER_EQUAL TOK_LESS TOK_LESS_EQUAL TOK_NOT_EQUAL TOK_LIKE
 %token TOK_VALUES TOK_DELETE
 %token TOK_OUT
 %token <string> FILENAME
@@ -47,6 +51,8 @@ extern char *yytext;
 %token <boolean> BOOLEAN
 %token <string> WORD
 %token <string> STRING
+
+%type <compare_option> compare_option
 
 %token TOK_INTEGER 
 %token TOK_FLOAT 
@@ -142,14 +148,23 @@ select_nodes:
 	{
 		tree.schema_name = malloc(sizeof(char) * strlen($3));
 		strcpy(tree.schema_name, $3);
-		printf("select statement on %s\n", $3);
+		printf("select nodes on %s\n", $3);
 	}
 	;
 
 select_condition:
 	| DOT TOK_SELECT OBRACE select_statements CBRACE
 	{
-		printf("condition of select\n");
+		//CHECK array_list_created to create tree.statements
+		if(!array_list_created) {
+			tree.statements = arraylist_create();
+		}
+		arraylist_add(tree.statements, cur_statement);
+		//make new empty statement
+		cur_statement = malloc(sizeof(statement));
+		cur_statement->type = SELECT_CONDITION;
+		cur_statement->conditions = arraylist_create();
+		printf("has() moment\n");
 	}
 	;
 
@@ -176,60 +191,33 @@ select_statements:
 	;
 
 select_statement:
-	quoted_argument COMMA select_option {
-
+	quoted_argument COMMA compare_option OBRACE INTEGER CBRACE {
+		if(cur_statement == NULL) {
+			printf("before malloc");
+			cur_statement = malloc(sizeof(statement));
+			printf("after malloc");
+			cur_statement->type = SELECT_CONDITION;
+			cur_statement->conditions = arraylist_create();
+		}
+		select_condition *cond = malloc(sizeof(select_condition));
+		cond->attr_name = malloc(sizeof(char) * strlen($1));
+		strcpy(cond->attr_name, $1);
+		cond->option = $3;
+		cond->type = ATTR_TYPE_INTEGER;
+		cond->value.integer_value = $5;
+		arraylist_add(cur_statement->conditions, cond);
+		printf("compare with integer\n");
+	}
+	| quoted_argument COMMA compare_option OBRACE DECIMAL CBRACE {
+		printf("compare with float\n");
+	}
+	| quoted_argument COMMA compare_option OBRACE BOOLEAN CBRACE {
+		printf("compare with float\n");
+	}
+	| quoted_argument COMMA compare_option OBRACE quoted_argument CBRACE {
+		printf("compare with string\n");
 	}
 	;
-
-select_option:
-	option_compare 
-	| option_greater
-	| option_greater_equal
-	| option_less
-	| option_less_equal
-	| option_not_equal
-	| option_like
-	;
-
-option_compare:
-	INTEGER | DECIMAL | BOOLEAN | quoted_argument
-	;
-
-option_greater:
-	TOK_GREATER OBRACE INTEGER CBRACE
-	| TOK_GREATER OBRACE DECIMAL CBRACE
-	| TOK_GREATER OBRACE BOOLEAN CBRACE
-	| TOK_GREATER OBRACE quoted_argument CBRACE
-	;
-option_greater_equal:
-	TOK_GREATER_EQUAL OBRACE INTEGER CBRACE
-	| TOK_GREATER_EQUAL OBRACE DECIMAL CBRACE
-	| TOK_GREATER_EQUAL OBRACE BOOLEAN CBRACE
-	| TOK_GREATER_EQUAL OBRACE quoted_argument CBRACE
-	;
-
-option_less:
-	TOK_LESS OBRACE INTEGER CBRACE
-	| TOK_LESS OBRACE DECIMAL CBRACE
-	| TOK_LESS OBRACE BOOLEAN CBRACE
-	| TOK_LESS OBRACE quoted_argument CBRACE
-	;
-option_less_equal:
-	TOK_LESS_EQUAL OBRACE INTEGER CBRACE
-	| TOK_LESS_EQUAL OBRACE DECIMAL CBRACE
-	| TOK_LESS_EQUAL OBRACE BOOLEAN CBRACE
-	| TOK_LESS_EQUAL OBRACE quoted_argument CBRACE
-	;
-option_not_equal:
-	TOK_NOT_EQUAL OBRACE INTEGER CBRACE
-	| TOK_NOT_EQUAL OBRACE DECIMAL CBRACE
-	| TOK_NOT_EQUAL OBRACE BOOLEAN CBRACE
-	| TOK_NOT_EQUAL OBRACE quoted_argument CBRACE
-	;
-option_like:
-	TOK_LIKE OBRACE quoted_argument CBRACE
-	;
-
 
 attribute_value_pairs:
 	| attribute_value_pairs COMMA attribute_value_pair {
@@ -349,6 +337,30 @@ attribute_pair:
 		strcpy(attr_decl->attr_name, $1);
 		strcpy(attr_decl->schema_ref_name, $5);
 		arraylist_add(tree.add_schema.attribute_declarations, attr_decl);
+	}
+	;
+
+compare_option:
+	TOK_EQUAL {
+		$$ = OPTION_EQUAL;
+	}
+	| TOK_GREATER {
+		$$ = OPTION_GREATER;
+	}
+	| TOK_GREATER_EQUAL {
+		$$ = OPTION_GREATER_EQUAL;
+	}
+	| TOK_LESS {
+		$$ = OPTION_LESS;
+	}
+	| TOK_LESS_EQUAL {
+		$$ = OPTION_LESS_EQUAL;
+	}
+	| TOK_NOT_EQUAL {
+		$$ = OPTION_NOT_EQUAL;
+	}
+	| TOK_LIKE {
+		$$ = OPTION_LIKE;
 	}
 	;
 
