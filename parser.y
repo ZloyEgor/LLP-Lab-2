@@ -148,7 +148,7 @@ select_nodes:
 	{
 		tree.schema_name = malloc(sizeof(char) * strlen($3));
 		strcpy(tree.schema_name, $3);
-		printf("select nodes on %s\n", $3);
+		// printf("select nodes on %s\n", $3);
 	}
 	;
 
@@ -158,26 +158,42 @@ select_condition:
 		//CHECK array_list_created to create tree.statements
 		if(!array_list_created) {
 			tree.statements = arraylist_create();
+			array_list_created = true;
 		}
 		arraylist_add(tree.statements, cur_statement);
 		//make new empty statement
-		cur_statement = malloc(sizeof(statement));
-		cur_statement->type = SELECT_CONDITION;
-		cur_statement->conditions = arraylist_create();
-		printf("has() moment\n");
+		cur_statement = NULL;
 	}
 	;
 
 join:
 	| DOT TOK_OUT OBRACE quoted_argument CBRACE
 	{
-		printf("join %s\n", $4);
+		if(!array_list_created) {
+			tree.statements = arraylist_create();
+			array_list_created = true;
+		}
+		cur_statement = malloc(sizeof(statement));
+		cur_statement->type = OUT;
+		cur_statement->attr_name = malloc(sizeof(char) * strlen($4));
+		strcpy(cur_statement->attr_name, $4);
+		arraylist_add(tree.statements, cur_statement);
+		cur_statement = NULL;
+		// printf("join %s\n", $4);
 	}
 	;
 
 delete_command:
 	| DOT TOK_DELETE {
-		printf("delete command\n");
+		if(!array_list_created) {
+			tree.statements = arraylist_create();
+			array_list_created = true;
+		}
+		cur_statement = malloc(sizeof(statement));
+		cur_statement->type = DELETE;
+		arraylist_add(tree.statements, cur_statement);
+		cur_statement = NULL;
+		// printf("delete command\n");
 	}
 	;
 
@@ -193,9 +209,7 @@ select_statements:
 select_statement:
 	quoted_argument COMMA compare_option OBRACE INTEGER CBRACE {
 		if(cur_statement == NULL) {
-			printf("before malloc");
 			cur_statement = malloc(sizeof(statement));
-			printf("after malloc");
 			cur_statement->type = SELECT_CONDITION;
 			cur_statement->conditions = arraylist_create();
 		}
@@ -206,16 +220,48 @@ select_statement:
 		cond->type = ATTR_TYPE_INTEGER;
 		cond->value.integer_value = $5;
 		arraylist_add(cur_statement->conditions, cond);
-		printf("compare with integer\n");
 	}
 	| quoted_argument COMMA compare_option OBRACE DECIMAL CBRACE {
-		printf("compare with float\n");
+		if(cur_statement == NULL) {
+			cur_statement = malloc(sizeof(statement));
+			cur_statement->type = SELECT_CONDITION;
+			cur_statement->conditions = arraylist_create();
+		}
+		select_condition *cond = malloc(sizeof(select_condition));
+		cond->attr_name = malloc(sizeof(char) * strlen($1));
+		strcpy(cond->attr_name, $1);
+		cond->option = $3;
+		cond->type = ATTR_TYPE_FLOAT;
+		cond->value.float_value = $5;
+		arraylist_add(cur_statement->conditions, cond);
 	}
 	| quoted_argument COMMA compare_option OBRACE BOOLEAN CBRACE {
-		printf("compare with float\n");
+		if(cur_statement == NULL) {
+			cur_statement = malloc(sizeof(statement));
+			cur_statement->type = SELECT_CONDITION;
+			cur_statement->conditions = arraylist_create();
+		}
+		select_condition *cond = malloc(sizeof(select_condition));
+		cond->attr_name = malloc(sizeof(char) * strlen($1));
+		strcpy(cond->attr_name, $1);
+		cond->option = $3;
+		cond->type = ATTR_TYPE_BOOLEAN;
+		cond->value.bool_value = $5;
+		arraylist_add(cur_statement->conditions, cond);
 	}
 	| quoted_argument COMMA compare_option OBRACE quoted_argument CBRACE {
-		printf("compare with string\n");
+		if(cur_statement == NULL) {
+			cur_statement = malloc(sizeof(statement));
+			cur_statement->type = SELECT_CONDITION;
+			cur_statement->conditions = arraylist_create();
+		}
+		select_condition *cond = malloc(sizeof(select_condition));
+		cond->attr_name = malloc(sizeof(char) * strlen($1));
+		strcpy(cond->attr_name, $1);
+		cond->option = $3;
+		cond->type = ATTR_TYPE_STRING;
+		cond->value.string_value = $5;
+		arraylist_add(cur_statement->conditions, cond);
 	}
 	;
 

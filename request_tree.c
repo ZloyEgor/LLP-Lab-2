@@ -6,28 +6,28 @@
 #include <stdio.h>
 
 static void print_schema(add_schema_struct schema) {
-    printf("Add schema: %s\n", schema.schema_name);
+    printf("Add schema: \"%s\"\n", schema.schema_name);
     for (int i = 0; i < arraylist_size(schema.attribute_declarations); i++) {
         attribute_declaration *cur_attr = arraylist_get(schema.attribute_declarations, i);
         switch (cur_attr->type) {
             case ATTR_TYPE_INTEGER: {
-                printf("%s: integer\n", cur_attr->attr_name);
+                printf("\"%s\": integer\n", cur_attr->attr_name);
                 break;
             }
             case ATTR_TYPE_BOOLEAN: {
-                printf("%s: boolean\n", cur_attr->attr_name);
+                printf("\"%s\": boolean\n", cur_attr->attr_name);
                 break;
             }
             case ATTR_TYPE_FLOAT: {
-                printf("%s: float\n", cur_attr->attr_name);
+                printf("\"%s\": float\n", cur_attr->attr_name);
                 break;
             }
             case ATTR_TYPE_STRING: {
-                printf("%s: string\n", cur_attr->attr_name);
+                printf("\"%s\": string\n", cur_attr->attr_name);
                 break;
             }
             case ATTR_TYPE_REFERENCE: {
-                printf("%s: reference to %s", cur_attr->attr_name, cur_attr->schema_ref_name);
+                printf("\"%s\": reference to %s", cur_attr->attr_name, cur_attr->schema_ref_name);
                 break;
             }
         }
@@ -47,23 +47,23 @@ static char* const select_option_strings[] = {
 static void print_condition(select_condition condition) {
     switch (condition.type) {
         case ATTR_TYPE_INTEGER: {
-            printf("%s %s %d\n", condition.attr_name, select_option_strings[condition.option],
+            printf("\t\"%s\" %s %d\n", condition.attr_name, select_option_strings[condition.option],
                    condition.value.integer_value);
             break;
         }
         case ATTR_TYPE_BOOLEAN: {
-            printf("%s %s %s\n", condition.attr_name, select_option_strings[condition.option],
+            printf("\t\"%s\" %s %s\n", condition.attr_name, select_option_strings[condition.option],
                    condition.value.bool_value ? "true" : "false");
             break;
         }
         case ATTR_TYPE_FLOAT: {
-            printf("%s %s %.4f\n", condition.attr_name, select_option_strings[condition.option],
+            printf("\t\"%s\" %s %.4f\n", condition.attr_name, select_option_strings[condition.option],
                    condition.value.float_value);
             break;
         }
         case ATTR_TYPE_REFERENCE:
         case ATTR_TYPE_STRING: {
-            printf("%s %s %s\n", condition.attr_name, select_option_strings[condition.option],
+            printf("\t\"%s\" %s %s\n", condition.attr_name, select_option_strings[condition.option],
                    condition.value.string_value);
             break;
         }
@@ -73,6 +73,7 @@ static void print_condition(select_condition condition) {
 static void print_statement(statement stmt) {
     switch (stmt.type) {
         case SELECT_CONDITION: {
+            printf("* Condition of selection:\n");
             for (int i = 0; i < arraylist_size(stmt.conditions); i++) {
                 select_condition *condition = arraylist_get(stmt.conditions, i);
                 print_condition(*condition);
@@ -80,11 +81,11 @@ static void print_statement(statement stmt) {
             break;
         }
         case OUT: {
-            printf("Out nodes by %s\n\n", stmt.attr_name);
+            printf("* Out nodes by %s\n", stmt.attr_name);
             break;
         }
         case DELETE: {
-            printf("Delete nodes\n");
+            printf("* Delete nodes\n");
             break;
         }
     }
@@ -104,23 +105,23 @@ static void print_node(add_node_struct node) {
         attr_value *cur_attr = arraylist_get(node.attribute_values, i);
         switch (cur_attr->type) {
             case ATTR_TYPE_INTEGER: {
-                printf("%s: %d\n", cur_attr->attr_name, cur_attr->value.integer_value);
+                printf("\"%s\": %d\n", cur_attr->attr_name, cur_attr->value.integer_value);
                 break;
             }
             case ATTR_TYPE_BOOLEAN: {
-                printf("%s: %s\n", cur_attr->attr_name, cur_attr->value.bool_value? "true" : "false");
+                printf("\"%s\": %s\n", cur_attr->attr_name, cur_attr->value.bool_value? "true" : "false");
                 break;
             }
             case ATTR_TYPE_FLOAT: {
-                printf("%s: %f\n", cur_attr->attr_name, cur_attr->value.float_value);
+                printf("\"%s\": %f\n", cur_attr->attr_name, cur_attr->value.float_value);
                 break;
             }
             case ATTR_TYPE_STRING: {
-                printf("%s: %s\n", cur_attr->attr_name, cur_attr->value.string_value);
+                printf("\"%s\": %s\n", cur_attr->attr_name, cur_attr->value.string_value);
                 break;
             }
             case ATTR_TYPE_REFERENCE: {
-                printf("%s: %d\n", cur_attr->attr_name, cur_attr->value.integer_value);
+                printf("\"%s\": %d\n", cur_attr->attr_name, cur_attr->value.integer_value);
                 break;
             }
         }
@@ -130,11 +131,11 @@ static void print_node(add_node_struct node) {
 void print_request_tree(request_tree tree) {
     switch (tree.type) {
         case REQUEST_OPEN: {
-            printf("Open file: %s\n", tree.file_work.filename);
+            printf("Open file: \"%s\"\n", tree.file_work.filename);
             break;
         }
         case REQUEST_CREATE: {
-            printf("Create file: %s\n", tree.file_work.filename);
+            printf("Create file: \"%s\"\n", tree.file_work.filename);
             break;
         }
         case REQUEST_CLOSE: {
@@ -146,7 +147,7 @@ void print_request_tree(request_tree tree) {
             break;
         }
         case REQUEST_DELETE_SCHEMA: {
-            printf("Delete schema: %s\n", tree.delete_schema.schema_name);
+            printf("Delete schema: \"%s\"\n", tree.delete_schema.schema_name);
             break;
         }
         case REQUEST_ADD_NODE: {
@@ -154,7 +155,7 @@ void print_request_tree(request_tree tree) {
             break;
         }
         case REQUEST_SELECT: {
-            printf("Select nodes: %s\n", tree.schema_name);
+            printf("Select nodes: \"%s\"\n", tree.schema_name);
             print_statements(tree.statements);
             break;
         }
