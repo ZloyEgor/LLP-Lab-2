@@ -368,7 +368,7 @@ attribute_pair:
 		strcpy(attr_decl->attr_name, $1);
 		arraylist_add(tree.add_schema.attribute_declarations, attr_decl);
 	}
-	| quoted_argument COMMA TOK_REFERENCE OBRACE STRING CBRACE {
+	| quoted_argument COMMA TOK_REFERENCE OBRACE quoted_argument CBRACE {
 		if (!array_list_created) {
 		tree.add_schema.attribute_declarations = arraylist_create();
 		printf("arraylist created\n");

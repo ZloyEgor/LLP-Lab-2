@@ -4,9 +4,14 @@
 
 #include "request_tree.h"
 #include <stdio.h>
+#include <string.h>
 
 static void print_schema(add_schema_struct schema) {
     printf("Add schema: \"%s\"\n", schema.schema_name);
+    if (schema.attribute_declarations == NULL) {
+        printf("No attributes\n");
+        return;
+    }
     for (int i = 0; i < arraylist_size(schema.attribute_declarations); i++) {
         attribute_declaration *cur_attr = arraylist_get(schema.attribute_declarations, i);
         switch (cur_attr->type) {
@@ -27,14 +32,14 @@ static void print_schema(add_schema_struct schema) {
                 break;
             }
             case ATTR_TYPE_REFERENCE: {
-                printf("\"%s\": reference to %s", cur_attr->attr_name, cur_attr->schema_ref_name);
+                printf("\"%s\": reference to %s\n", cur_attr->attr_name, cur_attr->schema_ref_name);
                 break;
             }
         }
     }
 }
 
-static char* const select_option_strings[] = {
+static char *const select_option_strings[] = {
         [OPTION_EQUAL] = "=",
         [OPTION_GREATER] = ">",
         [OPTION_GREATER_EQUAL] = ">=",
@@ -81,7 +86,7 @@ static void print_statement(statement stmt) {
             break;
         }
         case OUT: {
-            printf("* Out nodes by %s\n", stmt.attr_name);
+            printf("* Out nodes by \"%s\"\n", stmt.attr_name);
             break;
         }
         case DELETE: {
@@ -91,7 +96,7 @@ static void print_statement(statement stmt) {
     }
 }
 
-static void print_statements(arraylist* statements) {
+static void print_statements(arraylist *statements) {
     if (statements == NULL) return;
     for (int i = 0; i < arraylist_size(statements); i++) {
         statement *cur_stmt = arraylist_get(statements, i);
@@ -109,7 +114,7 @@ static void print_node(add_node_struct node) {
                 break;
             }
             case ATTR_TYPE_BOOLEAN: {
-                printf("\"%s\": %s\n", cur_attr->attr_name, cur_attr->value.bool_value? "true" : "false");
+                printf("\"%s\": %s\n", cur_attr->attr_name, cur_attr->value.bool_value ? "true" : "false");
                 break;
             }
             case ATTR_TYPE_FLOAT: {
@@ -163,4 +168,92 @@ void print_request_tree(request_tree tree) {
             printf("Empty tree\n");
             break;
     }
+}
+
+static size_t string_size(char *string) {
+    return sizeof(char) * strlen(string);
+}
+
+size_t get_tree_size(request_tree tree) {
+    size_t tree_size = sizeof(request_tree);
+
+    if (tree.schema_name != NULL) {
+        string_size(tree.schema_name);
+    }
+
+    switch (tree.type) {
+        case REQUEST_CLOSE:
+        case UNDEFINED:
+            break;
+
+        case REQUEST_OPEN:
+        case REQUEST_CREATE: {
+            tree_size += string_size(tree.file_work.filename);
+            break;
+        }
+
+        case REQUEST_ADD_SCHEMA: {
+            tree_size += string_size(tree.add_schema.schema_name);
+            if (tree.add_schema.attribute_declarations == NULL)
+                break;
+            tree_size += sizeof(arraylist) +
+                         tree.add_schema.attribute_declarations->capacity * sizeof(attribute_declaration);
+            for (int i = 0; i < arraylist_size(tree.add_schema.attribute_declarations); i++) {
+                attribute_declaration *cur_attr = arraylist_get(tree.add_schema.attribute_declarations, i);
+                tree_size += string_size(cur_attr->attr_name);
+                if (cur_attr->type == ATTR_TYPE_REFERENCE) {
+                    tree_size += string_size(cur_attr->schema_ref_name);
+                }
+            }
+            break;
+        }
+
+        case REQUEST_DELETE_SCHEMA: {
+            tree_size += string_size(tree.delete_schema.schema_name);
+            break;
+        }
+
+        case REQUEST_ADD_NODE: {
+            tree_size += string_size(tree.add_node.schema_name);
+            tree_size += sizeof(arraylist) + tree.add_node.attribute_values->capacity * sizeof(add_node_struct);
+            for (int i = 0; i < arraylist_size(tree.add_node.attribute_values); i++) {
+                attr_value *cur_attr = arraylist_get(tree.add_node.attribute_values, i);
+                tree_size += string_size(cur_attr->attr_name);
+            }
+            break;
+        }
+
+        case REQUEST_SELECT: {
+            tree_size += sizeof(arraylist);
+            if (tree.statements == NULL)
+                break;
+
+            tree_size += tree.statements->capacity * sizeof(statement);
+            for (int i = 0; i < arraylist_size(tree.statements); i++) {
+                statement *cur_statement = arraylist_get(tree.statements, i);
+
+                switch (cur_statement->type) {
+                    case SELECT_CONDITION: {
+                        if (cur_statement->conditions == NULL)
+                            break;
+                        tree_size += sizeof(arraylist) + cur_statement->conditions->capacity * sizeof(select_condition);
+                        for (int j = 0; j < arraylist_size(cur_statement->conditions); j++) {
+                            select_condition *cur_condition = arraylist_get(cur_statement->conditions, j);
+                            tree_size += string_size(cur_condition->attr_name);
+                        }
+                        break;
+                    }
+                    case OUT: {
+                        tree_size += string_size(cur_statement->attr_name);
+                        break;
+                    }
+                    case DELETE: {
+                        break;
+                    }
+                }
+            }
+            break;
+        }
+    }
+    return tree_size;
 }

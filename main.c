@@ -10,5 +10,6 @@ int main() {
     yyparse();
     request_tree tree = get_request_tree();
     print_request_tree(tree);
+    printf("Tree size: %zu bytes\n", get_tree_size(tree));
     return 0;
 }

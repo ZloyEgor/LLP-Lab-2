@@ -6,6 +6,7 @@
 #define CALC_REQUEST_TREE_H
 
 #include <stdbool.h>
+#include "stdlib.h"
 #include "array_list.h"
 
 typedef enum request_type {
@@ -108,6 +109,8 @@ typedef struct request_tree {
 } request_tree;
 
 void print_request_tree(request_tree tree);
+
+size_t get_tree_size(request_tree tree);
 
 request_tree get_request_tree();
 
